@@ -1,0 +1,273 @@
+/* Fonts */
+.monsieur-la-doulaise-regular {
+  font-family: "Monsieur La Doulaise", cursive;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.crimson-text-regular {
+  font-family: "Crimson Text", serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.dawning-of-a-new-day-regular {
+  font-family: "Dawning of a New Day", cursive;
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Color Variables */
+:root {
+  --bgBoja: #F5F5F5;
+  --green: #4E6555;
+  --header-footer: #EDEDED;
+  --darkgrey: #101010;
+  --black: #000000;
+  --white: #FFFFFF;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bgBoja);
+  text-align: center;
+}
+
+/* Header */
+header {
+  background-color: var(--header-footer);
+  width: 100%;
+  top: 0;
+  z-index: 999;
+  position: sticky;
+  padding: 30px 0 7px;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: center;
+}
+
+header a {
+  text-decoration: none;
+  color: var(--black);
+  font-family: "Crimson Text", serif;
+  font-size: 15px;
+  padding: 0 15px;
+  cursor: pointer;
+}
+
+/* Hero Section */
+.hero {
+  margin: 0 auto;
+  position: relative;
+}
+
+.hero img {
+  width: 100%;
+  height: auto;
+  z-index: 0;
+}
+
+/* Torn Paper Divider */
+.paper {
+  background: url('../bitni sliki/paper.png') no-repeat center;
+  background-size: cover;
+  width: 100%;
+  margin-top: -70px;
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+}
+
+/* Names */
+.names {
+  font-family: "Monsieur La Doulaise", cursive;
+  font-size: 40px;
+  font-weight: 400;
+  text-align: center;
+  margin-top: 3rem;
+}
+
+.date {
+  font-size: 12px;
+  margin: 15px 0 20px;
+  color: var(--black);
+}
+
+/* Decorative Flowers */
+.flowers {
+  position: relative;
+  display: flex;
+}
+
+.flowers img {
+  position: absolute;
+  width: 45%;
+  z-index: 3;
+}
+
+.flower-left {
+  left: 0;
+  top: -4rem;
+}
+
+.flower-right {
+  right: 0;
+  top: 0.5rem;
+}
+
+/* Welcome Section */
+.welcome-text {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-content: center;
+  justify-content: space-around;
+  align-items: center;
+  margin-top: 4rem;
+}
+
+.welcome {
+  font-size: 36px;
+  width: 60%;
+  font-family: "Dawning of a New Day", cursive;
+  margin-bottom: 15px;
+}
+
+.subtext {
+  font-size: 13px;
+  font-family: "Crimson Text", serif;
+  color: var(--darkgrey);
+  width: 65%;
+  margin: 15px 0 5px;
+}
+
+/* Upload Button */
+.upload {
+  background-color: #4a5c4e;
+  color: white;
+  padding: 10px 15px;
+  font-size: 15px;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  margin: 1rem 0;
+  font-family: "Crimson Text", serif;
+  z-index: 4;
+  text-decoration: none;
+}
+
+.upload:hover {
+  background-color: #3a4a3e;
+  cursor: pointer;
+}
+
+/* Bottom Image */
+.footer-img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Footer */
+footer {
+  font-size: 12px;
+  padding: 15px 0;
+  color: var(--darkgrey);
+  font-family: "Crimson Text", serif;
+  box-shadow: 0 -6px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Media Queries (only those that affect this page) */
+@media (min-width: 345px) {
+  .flowers img {
+    width: 43%;
+  }
+
+  .welcome {
+    margin: 30px 0 25px;
+  }
+}
+
+@media (min-width: 360px) {
+  .flower-left {
+    top: -5rem;
+  }
+
+  .flower-right {
+    top: -1rem;
+  }
+
+  .subtext {
+    width: 80%;
+  }
+
+  .upload {
+    font-size: 16px;
+    margin: 2rem 0;
+  }
+}
+
+@media (min-width: 370px) {
+  .names {
+    font-size: 42px;
+  }
+
+  .welcome {
+    margin-bottom: 20px;
+  }
+
+  .subtext {
+    width: 80%;
+  }
+
+  .upload-btn {
+    padding: 10px 20px;
+    margin: 0 0 1rem;
+  }
+}
+
+@media (min-width: 390px) {
+  .names {
+    font-size: 45px;
+  }
+
+  .welcome {
+    margin: 40px 0 30px;
+  }
+}
+
+@media (min-width: 425px) {
+  .names {
+    font-size: 47px;
+    margin: 60px 0 50px;
+  }
+
+  .date {
+    font-size: 14px;
+  }
+
+  .welcome {
+    font-size: 40px;
+  }
+
+  .subtext {
+    font-size: 16px;
+  }
+
+  .upload {
+    font-size: 20px;
+  }
+}
+
+@media (min-width: 768px) {
+  .names {
+    font-size: 55px;
+  }
+
+  .date {
+    font-size: 18px;
+  }
+}

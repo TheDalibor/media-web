@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wedding Gallery</title>
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/index_style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Monsieur+La+Doulaise&display=swap" rel="stylesheet">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Dawning+of+a+New+Day&display=swap" rel="stylesheet">
+
+  <style>
+    /* Upload overlay styles */
+    .upload-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .upload-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .progress-container {
+        text-align: center;
+    }
+
+    .progress-circle {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 20px;
+    }
+
+    .progress-circle svg {
+        transform: rotate(-90deg);
+        width: 100%;
+        height: 100%;
+    }
+
+    .progress-circle circle {
+        fill: none;
+        stroke-width: 8;
+    }
+
+    .progress-circle .bg-circle {
+        stroke: #333;
+    }
+
+    .progress-circle .progress-bar {
+        stroke: #e3e3e3;;
+        stroke-linecap: round;
+        stroke-dasharray: 283;
+        stroke-dashoffset: 283;
+        transition: stroke-dashoffset 0.3s ease, stroke 0.3s ease;
+    }
+
+    .progress-circle .progress-bar.success {
+        stroke: #28a745;
+    }
+
+    .progress-circle .progress-bar.error {
+        stroke: #dc3545;
+    }
+
+    .progress-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 24px;
+        font-weight: bold;
+        color: white;
+    }
+
+    .progress-icon {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 30px;
+        display: none;
+    }
+
+    .progress-message {
+        color: white;
+        font-size: 16px;
+        margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <a class="btn" href="index.html">UPLOAD</a>
+    <a class="btn" href="gallery.html">GALLERY</a>
+  </header>
+<main>
+<div class="hero">
+    <section class="hero">
+        <img src="bitni sliki/top-picture.jpg" alt="Couple photo">
+    </section>
+
+    <div class="paper">
+        <div class="name-date">
+            <h1 class="names">Marija & Dimitar</h1>
+            <p class="date">06.09.2025</p>
+        </div>
+    </div>
+   
+    <div class="flowers">
+        <img src="bitni sliki/cvekinja/left flowers.png" class="flower-left" alt="Flower decoration">
+        <img src="bitni sliki/cvekinja/right flowers.png" class="flower-right" alt="Flower decoration">
+    </div>
+
+    <div class="welcome-text">
+        <p class="welcome">Welcome to our wedding gallery</p>
+        <p class="subtext">Please upload your favorite moments with us 💖</p>
+        <input type="file" id="file-input" multiple accept="image/*,video/*" style="display: none;">
+        <a class="btn upload" id="upload-btn">UPLOAD</a>
+    </div>
+
+    <!-- Upload overlay -->
+    <div class="upload-overlay" id="upload-overlay">
+        <div class="progress-container">
+            <div class="progress-circle">
+                <svg>
+                    <circle class="bg-circle" cx="60" cy="60" r="45"></circle>
+                    <circle class="progress-bar" cx="60" cy="60" r="45" id="progress-bar"></circle>
+                </svg>
+                <div class="progress-text" id="progress-text">0%</div>
+                <div class="progress-icon" id="progress-icon">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+            </div>
+            <div class="progress-message" id="progress-message">Uploading files...</div>
+        </div>
+    </div>
+
+    <script>
+        const uploadBtn = document.getElementById('upload-btn');
+        const fileInput = document.getElementById('file-input');
+
+        uploadBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const files = e.target.files;
+            if (files.length > 0) {
+                uploadFiles(files);
+            }
+            // Clear the file input value so the same file can be selected again
+            e.target.value = '';
+        });
+
+        function uploadFiles(files) {
+            const formData = new FormData();
+            for (let file of files) {
+                formData.append('files', file);
+            }
+
+            const overlay = document.getElementById('upload-overlay');
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const progressIcon = document.getElementById('progress-icon');
+            const progressMessage = document.getElementById('progress-message');
+            
+            const circumference = 2 * Math.PI * 45;
+            
+            // Show overlay
+            overlay.classList.add('active');
+            progressBar.style.strokeDashoffset = circumference;
+            progressText.textContent = '0%';
+            progressText.style.display = 'block';
+            progressIcon.style.display = 'none';
+            progressMessage.textContent = 'Uploading files...';
+
+            const xhr = new XMLHttpRequest();
+            
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percentComplete = Math.round((e.loaded / e.total) * 100);
+                    const offset = circumference - (percentComplete / 100) * circumference;
+                    progressBar.style.strokeDashoffset = offset;
+                    progressText.textContent = percentComplete + '%';
+                }
+            });
+
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    if (xhr.status === 200) {
+                        // Success
+                        progressBar.classList.add('success');
+                        progressText.style.display = 'none';
+                        progressIcon.innerHTML = '<i class="fa-solid fa-check"></i>';
+                        progressIcon.style.display = 'block';
+                        progressIcon.style.color = '#28a745';
+                        progressMessage.textContent = 'Upload successful!';
+                        
+                        setTimeout(() => {
+                            overlay.classList.remove('active');
+                            resetProgress();
+                            // Redirect to gallery page after successful upload
+                            window.location.href = 'gallery.html';
+                        }, 2000);
+                        
+                    } else {
+                        // Error
+                        progressBar.classList.add('error');
+                        progressText.style.display = 'none';
+                        progressIcon.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                        progressIcon.style.display = 'block';
+                        progressIcon.style.color = '#dc3545';
+                        
+                        let errorMessage = 'Upload failed!';
+                        try {
+                            const error = JSON.parse(xhr.responseText);
+                            errorMessage = error.error || 'Upload failed!';
+                        } catch {}
+                        
+                        progressMessage.textContent = errorMessage;
+                        
+                        setTimeout(() => {
+                            overlay.classList.remove('active');
+                            resetProgress();
+                        }, 3000);
+                    }
+                }
+            };
+
+            xhr.open('POST', '/upload');
+            xhr.send(formData);
+        }
+
+        function resetProgress() {
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const progressIcon = document.getElementById('progress-icon');
+            
+            progressBar.classList.remove('success', 'error');
+            progressBar.style.strokeDashoffset = 283;
+            progressText.textContent = '0%';
+            progressText.style.display = 'block';
+            progressIcon.style.display = 'none';
+        }
+    </script>
+
+    <img src="bitni sliki/bottom-picture.jpg" alt="Hands" class="footer-img">
+</div>
+</main>
+<footer>
+        <p>&copy; 2025 Marija & Dimitar Wedding</p>
+  </footer>
+</body>
+</html>
