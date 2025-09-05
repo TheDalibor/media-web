@@ -251,9 +251,8 @@ function resetProgress() {
     progressText.style.display = 'block';
     progressIcon.style.display = 'none';
 }
-// Add these functions to your client-side code
+// Add this video compression function to your client-side code
 
-// Video compression function
 async function compressVideo(file) {
     return new Promise((resolve, reject) => {
         // Skip compression for small videos
@@ -326,67 +325,78 @@ async function compressVideo(file) {
     });
 }
 
-// Chunked upload function
-async function uploadVideoInChunks(file, onProgress) {
-    const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
-    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-    
-    // Initialize upload
-    const initResponse = await fetch('/api/upload/init', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            filename: file.name,
-            filesize: file.size,
-            totalChunks
-        })
-    });
-    
-    if (!initResponse.ok) {
-        throw new Error('Failed to initialize upload');
-    }
-    
-    const { uploadId } = await initResponse.json();
-    
-    // Upload chunks sequentially to avoid overwhelming server
-    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-        const start = chunkIndex * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, file.size);
-        const chunk = file.slice(start, end);
-        
-        const formData = new FormData();
-        formData.append('chunk', chunk);
-        
-        const response = await fetch(`/api/upload/chunk/${uploadId}/${chunkIndex}`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Chunk ${chunkIndex} upload failed`);
+// Add this video compression function to your client-side code
+
+async function compressVideo(file) {
+    return new Promise((resolve, reject) => {
+        // Skip compression for small videos
+        if (file.size < 50 * 1024 * 1024) { // Less than 50MB
+            resolve(file);
+            return;
         }
         
-        if (onProgress) {
-            onProgress((chunkIndex + 1) / totalChunks * 100);
-        }
-    }
-    
-    // Complete upload
-    const completeResponse = await fetch('/api/upload/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            uploadId,
-            filename: file.name,
-            totalChunks
-        })
+        const video = document.createElement('video');
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        video.onloadedmetadata = () => {
+            // Reduce resolution for large videos
+            const maxWidth = 1920;
+            const maxHeight = 1080;
+            const scale = Math.min(maxWidth / video.videoWidth, maxHeight / video.videoHeight, 1);
+            
+            canvas.width = video.videoWidth * scale;
+            canvas.height = video.videoHeight * scale;
+            
+            // Create MediaRecorder for compression
+            const stream = canvas.captureStream(30);
+            const recorder = new MediaRecorder(stream, {
+                mimeType: 'video/webm;codecs=vp9',
+                videoBitsPerSecond: 2500000 // 2.5Mbps
+            });
+            
+            const chunks = [];
+            recorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    chunks.push(event.data);
+                }
+            };
+            
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                const newName = file.name.replace(/\.[^.]+$/, '.webm');
+                const compressedFile = new File([blob], newName, {
+                    type: 'video/webm',
+                    lastModified: file.lastModified
+                });
+                resolve(compressedFile);
+            };
+            
+            // Draw video frames to canvas and record
+            let currentTime = 0;
+            const duration = video.duration;
+            
+            const drawFrame = () => {
+                if (currentTime < duration) {
+                    video.currentTime = currentTime;
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    currentTime += 1/30; // 30fps
+                    requestAnimationFrame(drawFrame);
+                } else {
+                    recorder.stop();
+                }
+            };
+            
+            recorder.start();
+            drawFrame();
+        };
+        
+        video.onerror = () => {
+            resolve(file); // Return original if compression fails
+        };
+        
+        video.src = URL.createObjectURL(file);
     });
-    
-    if (!completeResponse.ok) {
-        throw new Error('Failed to complete upload');
-    }
-    
-    return completeResponse.json();
 }
 
 // Update the processFile function to include video compression
@@ -405,7 +415,7 @@ async function processFile(file) {
             const convertedBlob = await heic2any({
                 blob: file,
                 toType: "image/jpeg",
-                quality: 0.92
+                quality: 0.78
             });
             
             // Create new File object with .jpg extension
@@ -430,40 +440,20 @@ async function processFile(file) {
     
     if (isVideo) {
         try {
-            console.log('Compressing video file:', file.name);
+            console.log(`📹 Video detected: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`);
             const compressedFile = await compressVideo(file);
-            console.log(`✅ Processed video ${file.name}`);
+            
+            if (compressedFile !== file) {
+                console.log(`✅ Video compression successful for ${file.name}`);
+            }
+            
             return compressedFile;
         } catch (error) {
-            console.error('Video compression failed for', file.name, error);
+            console.error(`❌ Video compression failed for ${file.name}:`, error);
+            console.log(`📹 Using original file instead`);
             return file; // Return original if compression fails
         }
     }
     
     return file;
-}
-
-// Update uploadFiles function to handle chunked uploads
-async function uploadFiles(files, progressCallback) {
-    let totalUploaded = 0;
-    
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        
-        // Use chunked upload for large files (>20MB)
-        if (file.size > 20 * 1024 * 1024) {
-            await uploadVideoInChunks(file, (chunkProgress) => {
-                const fileProgress = (totalUploaded + (chunkProgress / 100)) / files.length * 100;
-                progressCallback(50 + fileProgress / 2); // Second 50% for uploading
-            });
-        } else {
-            // Use regular upload for smaller files
-            await uploadSingleFile(file, (fileProgress) => {
-                const totalProgress = (totalUploaded + (fileProgress / 100)) / files.length * 100;
-                progressCallback(50 + totalProgress / 2); // Second 50% for uploading
-            }, 1);
-        }
-        
-        totalUploaded++;
-    }
 }
