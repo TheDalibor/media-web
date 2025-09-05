@@ -171,6 +171,89 @@ app.get('/api/gallery/download', (req, res) => {
         res.status(500).json({ error: 'Failed to create zip file' });
     }
 });
+// Add these to your server.js file after the existing code
+
+const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
+const uploadsDir = path.join(__dirname, 'temp-uploads');
+
+// Ensure temp directory exists
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Add JSON parsing middleware
+app.use(express.json());
+
+// Initialize chunked upload
+app.post('/api/upload/init', (req, res) => {
+    const { filename, filesize, totalChunks } = req.body;
+    const uploadId = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    
+    res.json({ uploadId });
+});
+
+// Upload chunk
+app.post('/api/upload/chunk/:uploadId/:chunkIndex', upload.single('chunk'), (req, res) => {
+    const { uploadId, chunkIndex } = req.params;
+    const chunkPath = path.join(uploadsDir, `${uploadId}_${chunkIndex}`);
+    
+    if (!req.file) {
+        return res.status(400).json({ error: 'No chunk uploaded' });
+    }
+    
+    // Move chunk to temp directory
+    fs.renameSync(req.file.path, chunkPath);
+    
+    res.json({ success: true, chunkIndex });
+});
+
+// Complete upload - reassemble chunks
+app.post('/api/upload/complete', (req, res) => {
+    const { uploadId, filename, totalChunks } = req.body;
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const finalFilename = uniqueSuffix + path.extname(filename);
+    const finalPath = path.join(galleryDir, finalFilename);
+    const writeStream = fs.createWriteStream(finalPath);
+    
+    let currentChunk = 0;
+    
+    const assembleNext = () => {
+        if (currentChunk >= totalChunks) {
+            writeStream.end();
+            // Clean up temp chunks
+            for (let i = 0; i < totalChunks; i++) {
+                const chunkPath = path.join(uploadsDir, `${uploadId}_${i}`);
+                if (fs.existsSync(chunkPath)) {
+                    fs.unlinkSync(chunkPath);
+                }
+            }
+            return res.json({ 
+                success: true, 
+                message: 'Video uploaded successfully!',
+                files: [{
+                    filename: finalFilename,
+                    originalName: filename,
+                    size: fs.statSync(finalPath).size
+                }]
+            });
+        }
+        
+        const chunkPath = path.join(uploadsDir, `${uploadId}_${currentChunk}`);
+        
+        if (fs.existsSync(chunkPath)) {
+            const readStream = fs.createReadStream(chunkPath);
+            readStream.on('data', (chunk) => writeStream.write(chunk));
+            readStream.on('end', () => {
+                currentChunk++;
+                assembleNext();
+            });
+        } else {
+            res.status(400).json({ error: `Missing chunk ${currentChunk}` });
+        }
+    };
+    
+    assembleNext();
+});
 
 app.listen(PORT, () => {
     console.log('🎉 Wedding gallery server starting...');
