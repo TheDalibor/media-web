@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const archiver = require('archiver');
 
 const app = express();
 const PORT = 3000;
@@ -15,7 +16,7 @@ if (!fs.existsSync(galleryDir)) {
 // Configure multer for file uploads
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'public/gallery/'); // Store in public/gallery
+        cb(null, 'public/gallery/');
     },
     filename: function (req, file, cb) {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -23,13 +24,18 @@ const storage = multer.diskStorage({
     }
 });
 
-// File filter for only images and videos
+// File filter for images and videos
 const fileFilter = (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|webp|mp4|avi|mov|wmv|flv|webm|mkv/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (mimetype && extname) {
+    const imageTypes = /jpeg|jpg|png|gif|webp|bmp|tiff|tif/i;
+    const videoTypes = /mp4|mov|avi|wmv|flv|webm|mkv|m4v|3gp|3g2|quicktime/i;
+    const imageMimeTypes = /^image\/(jpeg|jpg|png|gif|webp|bmp|tiff)/i;
+    const videoMimeTypes = /^video\/(mp4|quicktime|x-msvideo|webm|x-flv|x-matroska|3gpp)/i;
+    
+    const ext = path.extname(file.originalname).toLowerCase();
+    const extMatch = imageTypes.test(ext) || videoTypes.test(ext);
+    const mimeMatch = imageMimeTypes.test(file.mimetype) || videoMimeTypes.test(file.mimetype);
+    
+    if (mimeMatch || extMatch) {
         return cb(null, true);
     } else {
         cb(new Error('Only images and videos are allowed!'));
@@ -39,7 +45,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
     storage: storage,
     limits: {
-        fileSize: 100 * 1024 * 1024, // 100MB limit (more reasonable than 3GB)
+        fileSize: 300 * 1024 * 1024, // 200MB limit
     },
     fileFilter: fileFilter
 });
@@ -47,25 +53,29 @@ const upload = multer({
 // Serve static files from public directory
 app.use(express.static('public'));
 
-// Get gallery files endpoint
+// Gallery endpoint
 app.get('/api/gallery', (req, res) => {
     try {
         const files = fs.readdirSync(galleryDir);
         const mediaFiles = files.filter(file => {
             const ext = path.extname(file).toLowerCase();
-            return /\.(jpeg|jpg|png|gif|webp|mp4|avi|mov|wmv|flv|webm|mkv)$/i.test(ext);
+            return /\.(jpeg|jpg|png|gif|webp|bmp|tiff|tif|mp4|mov|avi|wmv|flv|webm|mkv|m4v|3gp|3g2)$/i.test(ext);
         }).map(file => {
             const ext = path.extname(file).toLowerCase();
-            const isVideo = /\.(mp4|avi|mov|wmv|flv|webm|mkv)$/i.test(ext);
+            const isVideo = /\.(mp4|mov|avi|wmv|flv|webm|mkv|m4v|3gp|3g2)$/i.test(ext);
+            const stats = fs.statSync(path.join(galleryDir, file));
+            
             return {
                 filename: file,
-                path: `/gallery/${file}`, // This will work because gallery is in public/
-                type: isVideo ? 'video' : 'image'
+                path: `/gallery/${file}`,
+                type: isVideo ? 'video' : 'image',
+                size: stats.size,
+                uploadDate: stats.birthtime || stats.ctime
             };
         });
         
-        // Sort by filename (which includes timestamp) to show newest first
-        mediaFiles.sort((a, b) => b.filename.localeCompare(a.filename));
+        // Sort by upload date (newest first)
+        mediaFiles.sort((a, b) => new Date(b.uploadDate) - new Date(a.uploadDate));
         
         res.json(mediaFiles);
     } catch (error) {
@@ -74,16 +84,20 @@ app.get('/api/gallery', (req, res) => {
     }
 });
 
-// Upload endpoint
+// Upload endpoint - simple since conversion happens client-side
 app.post('/upload', upload.array('files'), (req, res) => {
     if (!req.files || req.files.length === 0) {
         return res.status(400).json({ error: 'No files uploaded' });
     }
     
-    console.log(`Uploaded ${req.files.length} file(s)`);
+    console.log(`📤 Successfully uploaded ${req.files.length} file(s):`);
+    req.files.forEach(file => {
+        console.log(`  ✅ ${file.originalname} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`);
+    });
+    
     res.json({ 
         success: true, 
-        message: `${req.files.length} file(s) uploaded successfully`,
+        message: `${req.files.length} file(s) uploaded successfully!`,
         files: req.files.map(file => ({
             filename: file.filename,
             originalName: file.originalname,
@@ -92,59 +106,64 @@ app.post('/upload', upload.array('files'), (req, res) => {
     });
 });
 
-// Error handling middleware
+// Error handling
 app.use((error, req, res, next) => {
-    console.error('Server error:', error);
+    console.error('Server error:', error.message);
     
     if (error instanceof multer.MulterError) {
         if (error.code === 'LIMIT_FILE_SIZE') {
-            return res.status(400).json({ error: 'File too large (max 100MB)' });
+            return res.status(400).json({ 
+                error: 'File too large! Maximum size is 200MB per file.' 
+            });
         }
-        if (error.code === 'LIMIT_FILE_COUNT') {
-            return res.status(400).json({ error: 'Too many files' });
-        }
+        return res.status(400).json({ 
+            error: `Upload error: ${error.message}` 
+        });
     }
     
-    if (error.message === 'Only images and videos are allowed!') {
-        return res.status(400).json({ error: 'Only images and videos are allowed!' });
+    if (error.message.includes('Only images and videos are allowed')) {
+        return res.status(400).json({ 
+            error: error.message 
+        });
     }
     
-    res.status(500).json({ error: 'Server error occurred' });
+    res.status(500).json({ 
+        error: 'Server error occurred. Please try again.' 
+    });
 });
-const archiver = require('archiver');
+
+// Download all files as zip
 app.get('/api/gallery/download', (req, res) => {
     try {
         const files = fs.readdirSync(galleryDir);
-
-        // Filter image and video files
         const mediaFiles = files.filter(file => {
             const ext = path.extname(file).toLowerCase();
-            // Include images and videos
-            return /\.(jpeg|jpg|png|gif|webp|mp4|avi|mov|wmv|flv|webm|mkv)$/i.test(ext);
+            return /\.(jpeg|jpg|png|gif|webp|bmp|tiff|tif|mp4|mov|avi|wmv|flv|webm|mkv|m4v|3gp|3g2)$/i.test(ext);
         });
 
         if (mediaFiles.length === 0) {
             return res.status(404).json({ error: 'No media files to download.' });
         }
 
-        // Set headers for zip download
-        res.setHeader('Content-Disposition', 'attachment; filename=gallery.zip');
+        res.setHeader('Content-Disposition', 'attachment; filename=wedding-gallery.zip');
         res.setHeader('Content-Type', 'application/zip');
 
         const archive = archiver('zip', {
-            zlib: { level: 9 } // Best compression
+            zlib: { level: 6 }
         });
 
-        // Pipe archive to the response
+        archive.on('error', (err) => {
+            console.error('Archive error:', err);
+            res.status(500).json({ error: 'Failed to create zip file' });
+        });
+
         archive.pipe(res);
 
-        // Append each media file to the archive
         mediaFiles.forEach(file => {
             const filePath = path.join(galleryDir, file);
             archive.file(filePath, { name: file });
         });
 
-        // Finalize the archive (sends the zip)
         archive.finalize();
 
     } catch (error) {
@@ -153,8 +172,10 @@ app.get('/api/gallery/download', (req, res) => {
     }
 });
 
-
 app.listen(PORT, () => {
-    console.log(`Wedding gallery server running on http://localhost:${PORT}`);
-    console.log(`Gallery directory: ${galleryDir}`);
+    console.log('🎉 Wedding gallery server starting...');
+    console.log(`🌐 Server: http://localhost:${PORT}`);
+    console.log(`📁 Gallery: ${galleryDir}`);
+    console.log('📱 HEIC files converted client-side with heic2any');
+    console.log('✨ Ready for uploads!');
 });
