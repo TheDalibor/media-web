@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
   <title>Wedding Gallery</title>
   <link rel="stylesheet" href="css/reset.css">
   <link rel="stylesheet" href="css/style.css">
@@ -41,6 +44,13 @@
     <div class="gallery-naslov">
         <p>Wedding gallery</p>
     </div>
+    <div id="loadingSpinner" class="loading-spinner" style="display:none;">
+  <!-- You can replace this with any spinner you like -->
+  <svg class="spinner" viewBox="0 0 50 50">
+    <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+  </svg>
+</div>
+
 
 <div class="gallery">
   <div class="gallery-grid" id="galleryGrid">
@@ -62,11 +72,13 @@
 </div>
 </main>
 
-<!-- Lightbox for viewing media -->
+
 <div class="lightbox" id="lightbox">
   <span class="lightbox-close" id="lightboxClose">&times;</span>
-  <img class="lightbox-content" id="lightboxContent" />
-  <video class="lightbox-content" id="lightboxVideo" controls style="display: none;"></video>
+  <div class="lightbox-scroll-container">
+    <img class="lightbox-content" id="lightboxContent" />
+    <video class="lightbox-content" id="lightboxVideo" controls style="display: none;"></video>
+  </div>
 </div>
 
 <footer>

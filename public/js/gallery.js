@@ -6,15 +6,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const lightboxVideo = document.getElementById('lightboxVideo');
     const loadMoreContainer = document.getElementById('loadMoreContainer');
     const loadMoreBtn = document.getElementById('loadMoreBtn');
+    const loadingSpinner = document.getElementById('loadingSpinner'); // Spinner element
+    const lightboxPrev = document.getElementById('lightboxPrev');
+    const lightboxNext = document.getElementById('lightboxNext');
+
+let currentIndex = -1; // track current opened media index
+
 
     let allMediaFiles = [];
     let displayedCount = 0;
-    const itemsPerLoad = 12;
+    const itemsPerLoad = 80;
     let isLoading = false;
 
     async function loadGallery() {
         if (isLoading) return;
         isLoading = true;
+        loadingSpinner.style.display = 'flex'; // Show spinner
 
         try {
             const response = await fetch('/api/gallery');
@@ -47,8 +54,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
         } finally {
+            loadingSpinner.style.display = 'none'; // Hide spinner
             isLoading = false;
         }
+    }
+
+    // Reorder batch for column-count CSS to display left-to-right row by row
+    function reorderForColumns(batch, columnCount = 2) {
+        const rows = Math.ceil(batch.length / columnCount);
+        const reordered = [];
+
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < columnCount; col++) {
+                const index = col * rows + row;
+                if (index < batch.length) {
+                    reordered.push(batch[index]);
+                }
+            }
+        }
+
+        return reordered;
     }
 
     function loadMorePhotos() {
@@ -56,60 +81,56 @@ document.addEventListener('DOMContentLoaded', function() {
         if (nextBatch.length === 0) return;
 
         nextBatch.forEach((file, index) => {
-            setTimeout(() => {
-                const galleryItem = document.createElement('div');
-                galleryItem.className = 'gallery-item';
-                galleryItem.style.animationDelay = `${index * 0.1}s`;
+            const galleryItem = document.createElement('div');
+            galleryItem.className = 'gallery-item';
 
-                const mediaContainer = document.createElement('div');
-                mediaContainer.className = 'media-container';
+            galleryItem.style.setProperty('--delay', `${index * 0.1}s`);
 
-                if (file.type === 'image') {
-                    const img = document.createElement('img');
-                    img.src = file.path;
-                    img.className = 'media-item';
-                    img.alt = 'Wedding memory';
-                    img.loading = 'lazy';
-                    img.tabIndex = 0;
+            const mediaContainer = document.createElement('div');
+            mediaContainer.className = 'media-container';
 
-                    img.addEventListener('click', () => openLightbox(file.path, 'image'));
-                    img.addEventListener('keydown', (e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            openLightbox(file.path, 'image');
-                        }
-                    });
+            if (file.type === 'image') {
+                const img = document.createElement('img');
+                img.src = file.path;
+                img.className = 'media-item';
+                img.alt = 'Wedding memory';
+                img.loading = 'lazy';
+                img.tabIndex = 0;
 
-                    mediaContainer.appendChild(img);
-                } else if (file.type === 'video') {
-                    const video = document.createElement('video');
-                    video.src = file.path;
-                    video.className = 'media-item';
-                    video.muted = true;
-                    video.preload = 'metadata';
-                    video.tabIndex = 0;
+                img.addEventListener('click', () => openLightbox(file.path, 'image'));
+                img.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openLightbox(file.path, 'image');
+                    }
+                });
 
-                    const overlay = document.createElement('div');
-                    overlay.className = 'video-overlay';
+                mediaContainer.appendChild(img);
+            } else if (file.type === 'video') {
+                const video = document.createElement('video');
+                video.src = file.path;
+                video.className = 'media-item';
+                video.muted = true;
+                video.preload = 'metadata';
+                video.tabIndex = 0;
 
-                    const clickHandler = () => openLightbox(file.path, 'video');
-                    const keyHandler = (e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            openLightbox(file.path, 'video');
-                        }
-                    };
+                const overlay = document.createElement('div');
+                overlay.className = 'video-overlay';
 
-                    video.addEventListener('click', clickHandler);
-                    video.addEventListener('keydown', keyHandler);
+                video.addEventListener('click', () => openLightbox(file.path, 'video'));
+                video.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openLightbox(file.path, 'video');
+                    }
+                });
 
-                    mediaContainer.appendChild(video);
-                    mediaContainer.appendChild(overlay);
-                }
+                mediaContainer.appendChild(video);
+                mediaContainer.appendChild(overlay);
+            }
 
-                galleryItem.appendChild(mediaContainer);
-                galleryGrid.appendChild(galleryItem);
-            }, index * 50);
+            galleryItem.appendChild(mediaContainer);
+            galleryGrid.appendChild(galleryItem);
         });
 
         displayedCount += nextBatch.length;
@@ -133,7 +154,6 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
         } else {
             loadMoreBtn.style.display = 'block';
-            const remaining = allMediaFiles.length - displayedCount;
             loadMoreBtn.textContent = `Load More`;
         }
     }
@@ -189,19 +209,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     loadGallery();
-
-    setInterval(() => {
-        if (displayedCount >= allMediaFiles.length) {
-            const currentCount = displayedCount;
-            displayedCount = 0;
-            loadGallery().then(() => {
-                if (allMediaFiles.length > currentCount) {
-                    displayedCount = currentCount;
-                    loadMorePhotos();
-                } else {
-                    displayedCount = currentCount;
-                }
-            });
-        }
-    }, 30000);
 });
