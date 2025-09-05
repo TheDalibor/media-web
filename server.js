@@ -7,6 +7,13 @@ const archiver = require('archiver');
 const app = express();
 const PORT = 3000;
 
+// Set longer timeouts for uploads
+app.use((req, res, next) => {
+    req.setTimeout(10 * 60 * 1000); // 10 minutes
+    res.setTimeout(10 * 60 * 1000); // 10 minutes
+    next();
+});
+
 // Create gallery directory if it doesn't exist
 const galleryDir = path.join(__dirname, 'public', 'gallery');
 if (!fs.existsSync(galleryDir)) {
@@ -84,25 +91,67 @@ app.get('/api/gallery', (req, res) => {
     }
 });
 
-// Upload endpoint - simple since conversion happens client-side
+// Helper function to determine if file is video
+const isVideoFile = (file) => {
+    const videoTypes = /mp4|mov|avi|wmv|flv|webm|mkv|m4v|3gp|3g2|quicktime/i;
+    const videoMimeTypes = /^video\/(mp4|quicktime|x-msvideo|webm|x-flv|x-matroska|3gpp)/i;
+    
+    const ext = path.extname(file.originalname).toLowerCase();
+    return videoTypes.test(ext) || videoMimeTypes.test(file.mimetype);
+};
+
+// Upload endpoint - separate processing for images and videos
 app.post('/upload', upload.array('files'), (req, res) => {
     if (!req.files || req.files.length === 0) {
         return res.status(400).json({ error: 'No files uploaded' });
     }
     
+    // Separate files into images and videos
+    const images = req.files.filter(file => !isVideoFile(file));
+    const videos = req.files.filter(file => isVideoFile(file));
+    
     console.log(`📤 Successfully uploaded ${req.files.length} file(s):`);
-    req.files.forEach(file => {
-        console.log(`  ✅ ${file.originalname} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`);
-    });
+    console.log(`  📷 Images: ${images.length}`);
+    console.log(`  🎥 Videos: ${videos.length}`);
+    
+    // Log images first
+    if (images.length > 0) {
+        console.log('  📷 Image files:');
+        images.forEach(file => {
+            console.log(`    ✅ ${file.originalname} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`);
+        });
+    }
+    
+    // Log videos separately
+    if (videos.length > 0) {
+        console.log('  🎥 Video files:');
+        videos.forEach(file => {
+            console.log(`    ✅ ${file.originalname} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`);
+        });
+    }
     
     res.json({ 
         success: true, 
-        message: `${req.files.length} file(s) uploaded successfully!`,
-        files: req.files.map(file => ({
-            filename: file.filename,
-            originalName: file.originalname,
-            size: file.size
-        }))
+        message: `${req.files.length} file(s) uploaded successfully! (${images.length} images, ${videos.length} videos)`,
+        files: {
+            images: images.map(file => ({
+                filename: file.filename,
+                originalName: file.originalname,
+                size: file.size,
+                type: 'image'
+            })),
+            videos: videos.map(file => ({
+                filename: file.filename,
+                originalName: file.originalname,
+                size: file.size,
+                type: 'video'
+            }))
+        },
+        totals: {
+            images: images.length,
+            videos: videos.length,
+            total: req.files.length
+        }
     });
 });
 
@@ -178,5 +227,7 @@ app.listen(PORT, () => {
     console.log(`🌐 Server: http://localhost:${PORT}`);
     console.log(`📁 Gallery: ${galleryDir}`);
     console.log('📱 HEIC files converted client-side with heic2any');
+    console.log('⏱️  Request timeout: 10 minutes');
+    console.log('🔄 Separate processing for images and videos');
     console.log('✨ Ready for uploads!');
 });
