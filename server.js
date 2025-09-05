@@ -111,6 +111,48 @@ app.use((error, req, res, next) => {
     
     res.status(500).json({ error: 'Server error occurred' });
 });
+const archiver = require('archiver');
+app.get('/api/gallery/download', (req, res) => {
+    try {
+        const files = fs.readdirSync(galleryDir);
+
+        // Filter image and video files
+        const mediaFiles = files.filter(file => {
+            const ext = path.extname(file).toLowerCase();
+            // Include images and videos
+            return /\.(jpeg|jpg|png|gif|webp|mp4|avi|mov|wmv|flv|webm|mkv)$/i.test(ext);
+        });
+
+        if (mediaFiles.length === 0) {
+            return res.status(404).json({ error: 'No media files to download.' });
+        }
+
+        // Set headers for zip download
+        res.setHeader('Content-Disposition', 'attachment; filename=gallery.zip');
+        res.setHeader('Content-Type', 'application/zip');
+
+        const archive = archiver('zip', {
+            zlib: { level: 9 } // Best compression
+        });
+
+        // Pipe archive to the response
+        archive.pipe(res);
+
+        // Append each media file to the archive
+        mediaFiles.forEach(file => {
+            const filePath = path.join(galleryDir, file);
+            archive.file(filePath, { name: file });
+        });
+
+        // Finalize the archive (sends the zip)
+        archive.finalize();
+
+    } catch (error) {
+        console.error('Error creating zip archive:', error);
+        res.status(500).json({ error: 'Failed to create zip file' });
+    }
+});
+
 
 app.listen(PORT, () => {
     console.log(`Wedding gallery server running on http://localhost:${PORT}`);

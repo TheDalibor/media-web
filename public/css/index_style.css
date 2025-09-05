@@ -69,7 +69,7 @@ header a {
 
 /* Torn Paper Divider */
 .paper {
-  background: url('../bitni sliki/paper.png') no-repeat center;
+  background: url('../static_img/paper.png') no-repeat center;
   background-size: cover;
   width: 100%;
   margin-top: -70px;
@@ -269,5 +269,164 @@ footer {
 
   .date {
     font-size: 18px;
+  }
+}
+
+/* Desktop Scaling - Keeping mobile design intact */
+@media (min-width: 1024px) {
+  header {
+    padding: 40px 0 15px;
+  }
+
+  header a {
+    font-size: 18px;
+    padding: 0 25px;
+  }
+
+  .hero {
+    max-width: 1400px;
+  }
+
+  .names {
+    font-size: 70px;
+    margin-top: 4rem;
+  }
+
+  .date {
+    font-size: 22px;
+    margin: 20px 0 25px;
+  }
+
+  .welcome {
+    font-size: 50px;
+    margin: 50px 0 30px;
+  }
+
+  .subtext {
+    font-size: 20px;
+    width: 60%;
+    margin: 20px 0 10px;
+  }
+
+  .upload {
+    font-size: 24px;
+    padding: 15px 30px;
+    margin: 2rem 0;
+  }
+
+  .paper {
+    margin-top: -100px;
+  }
+
+  .flowers img {
+    width: 35%;
+    max-width: 250px;
+  }
+
+  .flower-left {
+    top: -6rem;
+  }
+
+  .flower-right {
+    top: -2rem;
+  }
+
+  footer {
+    font-size: 16px;
+    padding: 20px 0;
+  }
+}
+
+@media (min-width: 1440px) {
+  .hero {
+    max-width: 1600px;
+  }
+
+  .names {
+    font-size: 85px;
+    margin-top: 5rem;
+  }
+
+  .date {
+    font-size: 26px;
+    margin: 25px 0 30px;
+  }
+
+  .welcome {
+    font-size: 65px;
+    margin: 60px 0 40px;
+    width: 50%;
+  }
+
+  .subtext {
+    font-size: 24px;
+    width: 55%;
+    margin: 25px 0 15px;
+  }
+
+  .upload {
+    font-size: 28px;
+    padding: 18px 35px;
+    margin: 3rem 0;
+  }
+
+  .flowers img {
+    width: 30%;
+    max-width: 300px;
+  }
+
+  .flower-left {
+    top: -8rem;
+  }
+
+  .flower-right {
+    top: -3rem;
+  }
+}
+
+@media (min-width: 1920px) {
+  .hero {
+    max-width: 1800px;
+  }
+
+  .names {
+    font-size: 100px;
+    margin-top: 6rem;
+  }
+
+  .date {
+    font-size: 30px;
+    margin: 30px 0 35px;
+  }
+
+  .welcome {
+    font-size: 80px;
+    margin: 70px 0 50px;
+    width: 45%;
+  }
+
+  .subtext {
+    font-size: 28px;
+    width: 50%;
+    margin: 30px 0 20px;
+  }
+
+  .upload {
+    font-size: 32px;
+    padding: 20px 40px;
+    margin: 4rem 0;
+  }
+
+  .flowers img {
+    width: 25%;
+    max-width: 350px;
+  }
+
+  .flower-left {
+    top: -10rem;
+  }
+
+  .flower-right {
+    top: -4rem;
   }
 }
