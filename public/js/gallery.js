@@ -10,12 +10,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const lightboxPrev = document.getElementById('lightboxPrev');
     const lightboxNext = document.getElementById('lightboxNext');
 
-let currentIndex = -1; // track current opened media index
 
 
     let allMediaFiles = [];
     let displayedCount = 0;
-    const itemsPerLoad = 80;
+    const itemsPerLoad = 30;
     let isLoading = false;
 
     async function loadGallery() {
